@@ -50,3 +50,5 @@ Thumbs.db
 
 # Pytest
 .pytest_cache/
+
+CLAUDE.md

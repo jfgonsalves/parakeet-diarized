@@ -1,11 +1,11 @@
 # Parakeet Whisper-Compatible API
 
-A simple FastAPI server that provides an OpenAI Whisper API-compatible endpoint backed by [NVIDIA's Parakeet-TDT model](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2) for speech recognition + [Pyannote](https://github.com/pyannote/pyannote-audio) for speaker diarization.
+A simple FastAPI server that provides an OpenAI Whisper API-compatible endpoint backed by [NVIDIA's Parakeet-TDT model](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) for speech recognition + [Pyannote](https://github.com/pyannote/pyannote-audio) for speaker diarization.
 
 ## Features
 
 - Complete drop-in replacement for OpenAI's Whisper API
-- Uses [NVIDIA's Parakeet-TDT 0.6B V2 model](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2) for high-quality transcription
+- Uses [NVIDIA's Parakeet-TDT 0.6B V3 model](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) for high-quality multilingual transcription
 - Supports all Whisper API response formats (json, text, srt, vtt, verbose_json)
 - Supports word-level and segment-level timestamps
 - Optional speaker diarization using [Pyannote.audio](https://github.com/pyannote/pyannote-audio)
@@ -134,7 +134,7 @@ The API supports multiple response formats:
   "task": "transcribe",
   "language": "en",
   "duration": 10.5,
-  "model": "parakeet-tdt-0.6b-v2",
+  "model": "parakeet-tdt-0.6b-v3",
   "segments": [
     {
       "id": 0,
@@ -248,14 +248,14 @@ Use the `run.sh` script to configure and start the server:
 **Environment Variables** (for settings not available as command line arguments):
 - `ENABLE_DIARIZATION`: Enable/disable diarization globally (default: true)
 - `INCLUDE_DIARIZATION_IN_TEXT`: Include speaker labels in text by default (default: true)
-- `MODEL_ID`: Parakeet model to use (default: nvidia/parakeet-tdt-0.6b-v2)
+- `MODEL_ID`: Parakeet model to use (default: nvidia/parakeet-tdt-0.6b-v3)
 - `TEMPERATURE`: Sampling temperature (default: 0.0)
 - `CHUNK_DURATION`: Audio chunk duration in seconds (default: 500)
 - `TEMP_DIR`: Temporary directory for audio processing (default: /tmp/parakeet)
 
 ## Performance
 
-The [NVIDIA Parakeet-TDT model](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2) offers:
+The [NVIDIA Parakeet-TDT model](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) offers:
 - Fast transcription (top model on the HF Open ASR leaderboard)
 - Support for punctuation and capitalization
 - High accuracy with word error rates as low as 1.69% on LibriSpeech test-clean
@@ -269,7 +269,7 @@ The [NVIDIA Parakeet-TDT model](https://huggingface.co/nvidia/parakeet-tdt-0.6b-
 
 This project builds upon excellent work by:
 
-- **NVIDIA NeMo Team**: For the outstanding [Parakeet-TDT model](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2) that provides state-of-the-art speech recognition
+- **NVIDIA NeMo Team**: For the outstanding [Parakeet-TDT model](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) that provides state-of-the-art multilingual speech recognition
 - **Pyannote Team**: For the powerful [Pyannote.audio](https://github.com/pyannote/pyannote-audio) speaker diarization toolkit
 
 ## License

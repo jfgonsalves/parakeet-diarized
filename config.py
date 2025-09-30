@@ -23,7 +23,7 @@ DEFAULT_PORT = 8000
 DEBUG_MODE = os.environ.get("DEBUG", "0") == "1"
 
 # Model settings
-DEFAULT_MODEL_ID = "nvidia/parakeet-tdt-0.6b-v2"
+DEFAULT_MODEL_ID = "nvidia/parakeet-tdt-0.6b-v3"
 DEFAULT_TEMPERATURE = 0.0
 DEFAULT_CHUNK_DURATION = 500  # 5 minutes in seconds
 

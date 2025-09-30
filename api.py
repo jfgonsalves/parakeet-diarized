@@ -221,7 +221,7 @@ def create_app() -> FastAPI:
                 segments=all_segments if timestamps or response_format == "verbose_json" else None,
                 language=language,
                 duration=sum(len(segment.text.split()) for segment in all_segments) / 150 if all_segments else 0,
-                model="parakeet-tdt-0.6b-v2"
+                model="parakeet-tdt-0.6b-v3"
             )
 
             # Clean up temporary files
