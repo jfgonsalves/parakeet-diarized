@@ -10,7 +10,7 @@ from models import WhisperSegment, TranscriptionResponse
 
 logger = logging.getLogger(__name__)
 
-def load_model(model_id: str = "nvidia/parakeet-tdt-0.6b-v2"):
+def load_model(model_id: str = "nvidia/parakeet-tdt-0.6b-v3"):
     """
     Load the ASR model (Parakeet-TDT)
 
