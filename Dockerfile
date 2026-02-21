@@ -3,6 +3,7 @@ FROM docker.io/pytorch/pytorch:2.8.0-cuda12.6-cudnn9-runtime
 # Install system dependencies and build tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
+    git \
     curl \
     build-essential \
     g++ \
