@@ -66,7 +66,7 @@ class Config:
             default_model = DEFAULT_MEDASR_MODEL_ID
         else:
             default_model = DEFAULT_MODEL_ID
-        self.model_id = os.environ.get("MODEL_ID", default_model)
+        self.model_id = os.environ.get("MODEL_ID") or default_model
         self.temperature = float(os.environ.get("TEMPERATURE", DEFAULT_TEMPERATURE))
         self.chunk_duration = int(os.environ.get("CHUNK_DURATION", DEFAULT_CHUNK_DURATION))
 
