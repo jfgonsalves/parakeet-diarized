@@ -14,6 +14,8 @@ PORT=8000
 HOST="0.0.0.0"
 CHECK_DEPS=1
 HF_TOKEN=""
+ASR_BACKEND="parakeet"
+MODEL_ID=""
 
 # Process command line arguments
 while [[ $# -gt 0 ]]; do
@@ -39,6 +41,14 @@ while [[ $# -gt 0 ]]; do
             HF_TOKEN="$2"
             shift 2
             ;;
+        --backend)
+            ASR_BACKEND="$2"
+            shift 2
+            ;;
+        --model)
+            MODEL_ID="$2"
+            shift 2
+            ;;
         --help)
             echo -e "${BLUE}Parakeet Whisper-Compatible API Server${NC}"
             echo -e "Usage: $0 [options]"
@@ -46,6 +56,8 @@ while [[ $# -gt 0 ]]; do
             echo -e "  --debug             Enable debug mode"
             echo -e "  --port PORT         Set server port (default: 8000)"
             echo -e "  --host HOST         Set server host (default: 0.0.0.0)"
+            echo -e "  --backend BACKEND   ASR backend to use: parakeet or medasr (default: parakeet)"
+            echo -e "  --model MODEL_ID    Model ID to use (default: nvidia/parakeet-tdt-0.6b-v2 or google/medasr)"
             echo -e "  --skip-deps-check   Skip dependency checking"
             echo -e "  --hf-token TOKEN    Set HuggingFace access token for speaker diarization"
             echo -e "  --help              Show this help message"
@@ -111,6 +123,20 @@ fi
 if [[ -n "$HF_TOKEN" ]]; then
     echo -e "${GREEN}HuggingFace access token set. Speaker diarization will be available.${NC}"
     export HUGGINGFACE_ACCESS_TOKEN="$HF_TOKEN"
+fi
+
+# Set ASR backend
+export ASR_BACKEND="$ASR_BACKEND"
+if [[ "$ASR_BACKEND" == "medasr" ]]; then
+    echo -e "${GREEN}Using MedASR backend (medical speech recognition)${NC}"
+else
+    echo -e "${GREEN}Using Parakeet backend${NC}"
+fi
+
+# Set model ID if provided
+if [[ -n "$MODEL_ID" ]]; then
+    export MODEL_ID="$MODEL_ID"
+    echo -e "${GREEN}Using model: $MODEL_ID${NC}"
 fi
 
 # Run the server

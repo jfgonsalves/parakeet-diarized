@@ -9,7 +9,7 @@ hydra-core
 lightning
 lhotse
 einops
-transformers
+transformers>=5.0.0
 sentencepiece
 pandas
 jiwer

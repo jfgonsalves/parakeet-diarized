@@ -10,7 +10,7 @@ import torch
 
 from models import WhisperSegment, TranscriptionResponse, ModelInfo, ModelList
 from audio import convert_audio_to_wav, split_audio_into_chunks
-from transcription import load_model, format_srt, format_vtt, transcribe_audio_chunk
+from transcription import load_model, load_medasr_model, format_srt, format_vtt, transcribe_audio_chunk, transcribe_medasr_chunk
 from diarization import Diarizer
 from config import get_config
 
@@ -53,10 +53,18 @@ def create_app() -> FastAPI:
             else:
                 logger.warning("CUDA not available, using CPU (this will be slow)")
 
-            # Load the ASR model
+            # Load the ASR model based on configured backend
+            asr_backend = config.asr_backend
             model_id = config.model_id
-            asr_model = load_model(model_id)
-            logger.info(f"Model {model_id} loaded successfully")
+
+            if asr_backend == "medasr":
+                logger.info(f"Loading MedASR backend with model {model_id}")
+                asr_model = load_medasr_model(model_id)
+            else:
+                logger.info(f"Loading Parakeet backend with model {model_id}")
+                asr_model = load_model(model_id)
+
+            logger.info(f"Model {model_id} loaded successfully (backend: {asr_backend})")
 
             # Initialize diarization if token is available
             hf_token = config.get_hf_token()
@@ -138,13 +146,21 @@ def create_app() -> FastAPI:
             for i, chunk_path in enumerate(audio_chunks):
                 logger.info(f"Processing chunk {i+1}/{len(audio_chunks)}")
 
-                # Transcribe the chunk
-                chunk_text, chunk_segments = transcribe_audio_chunk(
-                    asr_model,
-                    chunk_path,
-                    language=language,
-                    word_timestamps=word_timestamps
-                )
+                # Transcribe the chunk using the appropriate function for the backend
+                if config.asr_backend == "medasr":
+                    chunk_text, chunk_segments = transcribe_medasr_chunk(
+                        asr_model,
+                        chunk_path,
+                        language=language,
+                        word_timestamps=word_timestamps
+                    )
+                else:
+                    chunk_text, chunk_segments = transcribe_audio_chunk(
+                        asr_model,
+                        chunk_path,
+                        language=language,
+                        word_timestamps=word_timestamps
+                    )
 
                 # Add offset to timestamps if not the first chunk
                 if i > 0:
@@ -221,7 +237,7 @@ def create_app() -> FastAPI:
                 segments=all_segments if timestamps or response_format == "verbose_json" else None,
                 language=language,
                 duration=sum(len(segment.text.split()) for segment in all_segments) / 150 if all_segments else 0,
-                model="parakeet-tdt-0.6b-v2"
+                model=config.model_id
             )
 
             # Clean up temporary files
@@ -251,6 +267,36 @@ def create_app() -> FastAPI:
             logger.error(f"Error during transcription: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
 
+    # Endpoint for transcribing audio without diarization
+    @app.post("/no_dia/v1/audio/transcriptions")
+    async def transcribe_audio_no_diarization(
+        file: UploadFile = File(...),
+        model: str = Form("whisper-1"),
+        language: Optional[str] = Form(None),
+        prompt: Optional[str] = Form(None),
+        response_format: str = Form("json"),
+        temperature: float = Form(0.0),
+        timestamps: bool = Form(False),
+        timestamp_granularities: Optional[List[str]] = Form(None),
+        vad_filter: bool = Form(False),
+        word_timestamps: bool = Form(False),
+    ):
+        # Delegate to the main endpoint, but force diarization off
+        return await transcribe_audio(
+            file=file,
+            model=model,
+            language=language,
+            prompt=prompt,
+            response_format=response_format,
+            temperature=temperature,
+            timestamps=timestamps,
+            timestamp_granularities=timestamp_granularities,
+            vad_filter=vad_filter,
+            word_timestamps=word_timestamps,
+            diarize=False,
+            include_diarization_in_text=False,
+        )
+
     @app.get("/health")
     async def health_check():
         """
@@ -261,6 +307,7 @@ def create_app() -> FastAPI:
         return {
             "status": "ok",
             "version": "1.0.0",
+            "asr_backend": config.asr_backend,
             "model_loaded": asr_model is not None,
             "model_id": config.model_id,
             "cuda_available": torch.cuda.is_available(),
@@ -282,6 +329,16 @@ def create_app() -> FastAPI:
                 permission=[{"id": "modelperm-1", "object": "model_permission", "created": 1677649963,
                            "allow_create_engine": False, "allow_sampling": True, "allow_logprobs": True,
                            "allow_search_indices": False, "allow_view": True, "allow_fine_tuning": False,
+                           "organization": "*", "group": None, "is_blocking": False}]
+            ),
+            ModelInfo(
+                id="medasr",
+                created=1734537600,  # December 18, 2025
+                owned_by="google",
+                root="google/medasr",
+                permission=[{"id": "modelperm-medasr", "object": "model_permission", "created": 1734537600,
+                           "allow_create_engine": False, "allow_sampling": True, "allow_logprobs": True,
+                           "allow_search_indices": False, "allow_view": True, "allow_fine_tuning": True,
                            "organization": "*", "group": None, "is_blocking": False}]
             )
         ]

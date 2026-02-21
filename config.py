@@ -1,10 +1,8 @@
 # Configuration settings for Parakeet
 import os
 import logging
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, Literal
 from pathlib import Path
-
-from pydantic.types import T
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -22,8 +20,13 @@ DEFAULT_HOST = "0.0.0.0"
 DEFAULT_PORT = 8000
 DEBUG_MODE = os.environ.get("DEBUG", "0") == "1"
 
+# ASR backend types
+ASRBackendType = Literal["parakeet", "medasr"]
+
 # Model settings
+DEFAULT_ASR_BACKEND = "parakeet"
 DEFAULT_MODEL_ID = "nvidia/parakeet-tdt-0.6b-v2"
+DEFAULT_MEDASR_MODEL_ID = "google/medasr"
 DEFAULT_TEMPERATURE = 0.0
 DEFAULT_CHUNK_DURATION = 500  # 5 minutes in seconds
 
@@ -55,8 +58,15 @@ class Config:
         self.port = int(os.environ.get("PORT", DEFAULT_PORT))
         self.debug = DEBUG_MODE
 
-        # Model settings
-        self.model_id = os.environ.get("MODEL_ID", DEFAULT_MODEL_ID)
+        # ASR backend settings
+        self.asr_backend = os.environ.get("ASR_BACKEND", DEFAULT_ASR_BACKEND).lower()
+
+        # Model settings - select default based on backend
+        if self.asr_backend == "medasr":
+            default_model = DEFAULT_MEDASR_MODEL_ID
+        else:
+            default_model = DEFAULT_MODEL_ID
+        self.model_id = os.environ.get("MODEL_ID", default_model)
         self.temperature = float(os.environ.get("TEMPERATURE", DEFAULT_TEMPERATURE))
         self.chunk_duration = int(os.environ.get("CHUNK_DURATION", DEFAULT_CHUNK_DURATION))
 
@@ -88,6 +98,7 @@ class Config:
             "host": self.host,
             "port": self.port,
             "debug": self.debug,
+            "asr_backend": self.asr_backend,
             "model_id": self.model_id,
             "temperature": self.temperature,
             "chunk_duration": self.chunk_duration,

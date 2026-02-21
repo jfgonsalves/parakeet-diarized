@@ -5,10 +5,12 @@ from typing import List, Optional, Dict, Any, Union, Tuple
 
 import torch
 import numpy as np
+import librosa
 
 from models import WhisperSegment, TranscriptionResponse
 
 logger = logging.getLogger(__name__)
+
 
 def load_model(model_id: str = "nvidia/parakeet-tdt-0.6b-v2"):
     """
@@ -23,7 +25,7 @@ def load_model(model_id: str = "nvidia/parakeet-tdt-0.6b-v2"):
     try:
         from nemo.collections.asr.models import EncDecCTCModelBPE
 
-        logger.info(f"Loading model {model_id}")
+        logger.info(f"Loading Parakeet model {model_id}")
         # For Parakeet-TDT, we use the NeMo toolkit
         model = EncDecCTCModelBPE.from_pretrained(model_id)
 
@@ -37,6 +39,36 @@ def load_model(model_id: str = "nvidia/parakeet-tdt-0.6b-v2"):
         return model
     except Exception as e:
         logger.error(f"Error loading model: {str(e)}")
+        raise
+
+
+def load_medasr_model(model_id: str = "google/medasr"):
+    """
+    Load the MedASR model using transformers
+
+    Args:
+        model_id: The HuggingFace model ID to load
+
+    Returns:
+        Dictionary containing the model and processor
+    """
+    try:
+        from transformers import AutoModelForCTC, AutoProcessor
+
+        logger.info(f"Loading MedASR model {model_id}")
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        processor = AutoProcessor.from_pretrained(model_id)
+        model = AutoModelForCTC.from_pretrained(model_id).to(device)
+
+        if device == "cuda":
+            logger.info(f"Model loaded on GPU: {torch.cuda.get_device_name(0)}")
+        else:
+            logger.warning("CUDA not available, running on CPU (will be slow)")
+
+        return {"model": model, "processor": processor}
+    except Exception as e:
+        logger.error(f"Error loading MedASR model: {str(e)}")
         raise
 
 def _format_timestamp(seconds: float, always_include_hours: bool = False,
@@ -166,4 +198,53 @@ def transcribe_audio_chunk(model, audio_path: str, language: Optional[str] = Non
 
     except Exception as e:
         logger.error(f"Error transcribing audio chunk: {str(e)}")
+        return "", []
+
+
+def transcribe_medasr_chunk(model_dict: Dict, audio_path: str, language: Optional[str] = None,
+                            word_timestamps: bool = False) -> Tuple[str, List[WhisperSegment]]:
+    """
+    Transcribe a single audio chunk using the MedASR model
+
+    Args:
+        model_dict: Dictionary containing the model and processor
+        audio_path: Path to the audio file
+        language: Optional language code (not used by MedASR)
+        word_timestamps: Whether to generate word-level timestamps
+
+    Returns:
+        Tuple of (transcription text, list of WhisperSegment objects)
+    """
+    try:
+        model = model_dict["model"]
+        processor = model_dict["processor"]
+        device = next(model.parameters()).device
+
+        # Load audio at 16kHz
+        speech, sample_rate = librosa.load(audio_path, sr=16000)
+
+        # Process audio
+        with torch.no_grad():
+            inputs = processor(speech, sampling_rate=sample_rate, return_tensors="pt", padding=True)
+            inputs = {k: v.to(device) for k, v in inputs.items()}
+
+            # Generate transcription
+            outputs = model.generate(**inputs)
+            text = processor.batch_decode(outputs)[0]
+
+        # MedASR doesn't provide word-level timestamps, so we create a single segment
+        segments = []
+        audio_duration = len(speech) / sample_rate
+
+        segments.append(WhisperSegment(
+            id=0,
+            start=0.0,
+            end=audio_duration,
+            text=text.strip()
+        ))
+
+        return text, segments
+
+    except Exception as e:
+        logger.error(f"Error transcribing audio chunk with MedASR: {str(e)}")
         return "", []
