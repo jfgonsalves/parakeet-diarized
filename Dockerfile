@@ -22,6 +22,10 @@ RUN uv pip install --system --no-cache \
     torch==2.8.0 torchvision torchaudio \
     && uv pip install --system --no-cache -r requirements.txt
 
+RUN uv pip install --system --no-cache git+https://github.com/huggingface/transformers.git@65dc261512cbdb1ee72b88ae5b222f2605aad8e5
+
+
+# Install specific transformers commit for MedASR compatibility
 COPY . /app
 
 RUN useradd -m -u 1000 appuser && chown -R appuser /app
